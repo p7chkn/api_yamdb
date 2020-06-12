@@ -2,6 +2,8 @@
 env/
 venv/
 
+sent_emails/
+
 __pycache__/
 *.py[cod]
 
