@@ -1,8 +1,10 @@
 import hashlib
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from django.http import HttpResponse
 from django.core.validators import validate_email
 from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
+from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User
@@ -28,8 +30,20 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAdmin, ]
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset)
+        return Response(serializer.data)
+
     def get_queryset(self):
-        return User.objects.filter(username=self.kwargs['username'])
+        if self.kwargs['username'] == 'me':
+            return get_object_or_404(User, username=self.request.user.username)
+        return get_object_or_404(User, username=self.kwargs['username'])
+
+    def destroy(self, request, username):
+        user = get_object_or_404(User, username=username)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT) 
 
 
 def sent_email(request):
