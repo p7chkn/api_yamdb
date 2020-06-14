@@ -23,27 +23,34 @@ class UsersViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAdmin, ]
     pagination_class = StandardResultsSetPagination
+    lookup_field = 'username'
 
-
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAdmin, ]
-
-    def list(self, request, *args, **kwargs):
+    def get_object(self):
         queryset = self.get_queryset()
-        serializer = self.serializer_class(queryset)
-        return Response(serializer.data)
+        obj = get_object_or_404(queryset)
+        self.check_object_permissions(self.request, obj)
+        print(obj)
+        return obj
 
-    def get_queryset(self):
-        if self.kwargs['username'] == 'me':
-            return get_object_or_404(User, username=self.request.user.username)
-        return get_object_or_404(User, username=self.kwargs['username'])
+    def get_queryset(self, username=None):
+        try:
+            usename = self.kwargs['username']
+        except Exception:
+            queryset = User.objects.all()
+            return queryset
+        if usename == 'me':
+            queryset = User.objects.filter(email=self.request.user.email)
+            return queryset
 
-    def destroy(self, request, username):
+        queryset = User.objects.filter(username=usename)
+        return queryset
+
+    def destroy(self, request, username=None):
+        if username is None or username == 'me':
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         user = get_object_or_404(User, username=username)
         user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT) 
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 def sent_email(request):
