@@ -52,3 +52,54 @@ class User(AbstractBaseUser):
 
     def __str__(self):
         return self.email
+
+
+class Categories(models.Model):
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Genres(models.Model):
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Titles(models.Model):
+    name = models.TextField()
+    year = models.IntegerField()
+    category = models.ForeignKey(Categories,
+                                 on_delete=models.SET_NULL,
+                                 blank=True,
+                                 null=True)
+    genre = models.ForeignKey(Genres,
+                              on_delete=models.SET_NULL,
+                              blank=True,
+                              null=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Review(models.Model):
+    title_id = models.ForeignKey(Titles, on_delete=models.CASCADE,
+                                 related_name="title_id")
+    text = models.CharField(max_length=200)
+    author = models.ForeignKey(User, on_delete=models.CASCADE,
+                               related_name="author_review")
+    score = models.FloatField(max_length=2, default=0)
+    pub_date = models.DateTimeField(auto_now_add=True)
+
+
+class Comments(models.Model):
+    review_id = models.ForeignKey(Review, on_delete=models.CASCADE,
+                                  related_name="review_id")
+    text = models.TextField()
+    author = models.ForeignKey(User, on_delete=models.CASCADE,
+                               related_name="author_comments")
+    pub_date = models.DateTimeField(auto_now_add=True)

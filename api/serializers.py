@@ -5,7 +5,7 @@ from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.serializers import TokenObtainSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User
+from .models import User, Categories, Genres, Titles, Review, Comments
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -80,3 +80,43 @@ class YamdbTokenObtainPairSerializer(YamdbTokenObtainSerializer):
         data['access'] = str(refresh.access_token)
 
         return data
+
+
+class CategoriesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ('name', 'slug')
+        lookup_field = 'slug'
+        model = Categories
+
+
+class GenresSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ( 'name', 'slug')
+        lookup_field = 'slug'
+        model = Genres
+
+
+class TitlesSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField()
+    genre = serializers.ReadOnlyField()
+    category = serializers.ReadOnlyField()
+
+    class Meta:
+        fields = ('id', 'name', 'year', 'category', 'genre')
+        model = Titles
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ('text', 'author', 'score', 'pub_date')
+        model = Review
+
+
+class CommentsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        fields = ('author', 'pub_date')
+        model = Comments
