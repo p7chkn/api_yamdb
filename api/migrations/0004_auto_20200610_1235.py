@@ -6,13 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0003_auto_20200610_1229'),
+        ("api", "0003_auto_20200610_1229"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='user',
-            name='role',
-            field=models.CharField(choices=[('AU', 'user'), ('MD', 'moderator'), ('AD', 'admin')], default='AU', max_length=2),
+            model_name="user",
+            name="role",
+            field=models.CharField(
+                choices=[("AU", "user"), ("MD", "moderator"), ("AD", "admin")],
+                default="AU",
+                max_length=2,
+            ),
         ),
     ]

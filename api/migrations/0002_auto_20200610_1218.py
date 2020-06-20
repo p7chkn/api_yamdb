@@ -6,54 +6,53 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0001_initial'),
+        ("api", "0001_initial"),
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='user',
-            name='role',
-        ),
+        migrations.RemoveField(model_name="user", name="role",),
         migrations.AddField(
-            model_name='user',
-            name='conformation_code',
+            model_name="user",
+            name="conformation_code",
             field=models.CharField(default=1, max_length=200),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='user',
-            name='is_active',
+            model_name="user",
+            name="is_active",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='user',
-            name='is_admin',
+            model_name="user",
+            name="is_admin",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='user',
-            name='is_moderator',
+            model_name="user",
+            name="is_moderator",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='user',
-            name='last_login',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='last login'),
+            model_name="user",
+            name="last_login",
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="last login"
+            ),
         ),
         migrations.AddField(
-            model_name='user',
-            name='password',
-            field=models.CharField(default=1, max_length=128, verbose_name='password'),
+            model_name="user",
+            name="password",
+            field=models.CharField(default=1, max_length=128, verbose_name="password"),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='user',
-            name='email',
-            field=models.EmailField(max_length=255, unique=True, verbose_name='email address'),
+            model_name="user",
+            name="email",
+            field=models.EmailField(
+                max_length=255, unique=True, verbose_name="email address"
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='username',
-            field=models.SlugField(unique=True),
+            model_name="user", name="username", field=models.SlugField(unique=True),
         ),
     ]

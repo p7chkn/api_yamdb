@@ -5,14 +5,12 @@ from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.serializers import TokenObtainSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User
+from .models import User, Categories, Genres, Titles, Review, Comments
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
-        fields = ['first_name', 'last_name',
-                  'username', 'bio', 'email', 'role']
+        fields = ["first_name", "last_name", "username", "bio", "email", "role"]
         model = User
 
 
@@ -21,8 +19,8 @@ class YamdbTokenObtainSerializer(TokenObtainSerializer):
         super().__init__(*args, **kwargs)
 
         self.fields[self.username_field] = serializers.CharField()
-        self.fields['password'] = serializers.CharField(required=False)
-        self.fields['conformation_code'] = serializers.CharField()
+        self.fields["password"] = serializers.CharField(required=False)
+        self.fields["conformation_code"] = serializers.CharField()
 
     def validate(self, attrs):
         email = attrs[self.username_field]
@@ -32,19 +30,20 @@ class YamdbTokenObtainSerializer(TokenObtainSerializer):
             raise serializers.ValidationError("Not valid email")
 
         if not User.objects.filter(email=email).first():
-            hash_email = hashlib.sha256(email.encode('utf-8')).hexdigest()
+            hash_email = hashlib.sha256(email.encode("utf-8")).hexdigest()
             print(hash_email)
-            if hash_email != attrs['conformation_code']:
+            if hash_email != attrs["conformation_code"]:
                 raise serializers.ValidationError("credential dosen't match")
-            User.objects.create_user(email=email, username='',
-                                     password=attrs['conformation_code'])
+            User.objects.create_user(
+                email=email, username="", password=attrs["conformation_code"]
+            )
 
         authenticate_kwargs = {
             self.username_field: attrs[self.username_field],
-            'password': attrs['conformation_code'],
+            "password": attrs["conformation_code"],
         }
         try:
-            authenticate_kwargs['request'] = self.context['request']
+            authenticate_kwargs["request"] = self.context["request"]
         except KeyError:
             pass
 
@@ -59,8 +58,7 @@ class YamdbTokenObtainSerializer(TokenObtainSerializer):
         # sensible backwards compatibility with older Django versions.
         if self.user is None or not self.user.is_active:
             raise exceptions.AuthenticationFailed(
-                self.error_messages['no_active_account'],
-                'no_active_account',
+                self.error_messages["no_active_account"], "no_active_account",
             )
 
         return {}
@@ -76,7 +74,45 @@ class YamdbTokenObtainPairSerializer(YamdbTokenObtainSerializer):
 
         refresh = self.get_token(self.user)
 
-        data['refresh'] = str(refresh)
-        data['access'] = str(refresh.access_token)
+        data["refresh"] = str(refresh)
+        data["access"] = str(refresh.access_token)
 
         return data
+
+
+class CategoriesSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ("name", "slug")
+        lookup_field = "slug"
+        model = Categories
+
+
+class GenresSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ("name", "slug")
+        lookup_field = "slug"
+        model = Genres
+
+
+class TitlesSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField()
+    genre = serializers.ReadOnlyField()
+    category = serializers.ReadOnlyField()
+
+    class Meta:
+        fields = ("id", "name", "year", "category", "genre")
+        model = Titles
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.ReadOnlyField(source="author.username")
+
+    class Meta:
+        fields = ("id", "text", "author", "score", "pub_date")
+        model = Review
+
+
+class CommentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ("id", "author", "pub_date")
+        model = Comments

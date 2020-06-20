@@ -6,33 +6,39 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0006_auto_20200611_1121'),
+        ("api", "0006_auto_20200611_1121"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='user',
-            name='bio',
-            field=models.TextField(blank=True),
+            model_name="user", name="bio", field=models.TextField(blank=True),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='first_name',
+            model_name="user",
+            name="first_name",
             field=models.CharField(blank=True, max_length=200),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='last_name',
+            model_name="user",
+            name="last_name",
             field=models.CharField(blank=True, max_length=200),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='role',
-            field=models.CharField(choices=[('user', 'user'), ('moderator', 'moderator'), ('admin', 'admin')], default=1, max_length=10),
+            model_name="user",
+            name="role",
+            field=models.CharField(
+                choices=[
+                    ("user", "user"),
+                    ("moderator", "moderator"),
+                    ("admin", "admin"),
+                ],
+                default=1,
+                max_length=10,
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='username',
+            model_name="user",
+            name="username",
             field=models.SlugField(blank=True, null=True, unique=True),
         ),
     ]

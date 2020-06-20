@@ -7,20 +7,39 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('first_name', models.CharField(max_length=200)),
-                ('last_name', models.CharField(max_length=200)),
-                ('username', models.SlugField()),
-                ('bio', models.TextField()),
-                ('email', models.EmailField(max_length=254)),
-                ('role', models.CharField(choices=[('AU', 'Authenticated User'), ('MD', 'Moderator'), ('AD', 'Administrator'), ('AJ', 'Administrator Django')], default='AU', max_length=2)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("first_name", models.CharField(max_length=200)),
+                ("last_name", models.CharField(max_length=200)),
+                ("username", models.SlugField()),
+                ("bio", models.TextField()),
+                ("email", models.EmailField(max_length=254)),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[
+                            ("AU", "Authenticated User"),
+                            ("MD", "Moderator"),
+                            ("AD", "Administrator"),
+                            ("AJ", "Administrator Django"),
+                        ],
+                        default="AU",
+                        max_length=2,
+                    ),
+                ),
             ],
         ),
     ]
