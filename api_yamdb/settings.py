@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',    
+    'rest_framework',
     'api',
 ]
 
@@ -134,7 +134,8 @@ REST_FRAMEWORK = {
         ],     
            'DEFAULT_AUTHENTICATION_CLASSES': [
             'rest_framework_simplejwt.authentication.JWTAuthentication',
-        ],          
+        ],
+
 }
 
 MANAGERS = ['p7chkn@yandex.ru', 'falljosef93@gmail.com']

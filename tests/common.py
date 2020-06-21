@@ -80,6 +80,7 @@ def create_reviews(user_client, admin):
     def create_review(uclient, title_id, text, score):
         data = {'text': text, 'score': score}
         response = uclient.post(f'/api/v1/titles/{title_id}/reviews/', data=data)
+        print(title_id, '===', response.json())
         return response.json()['id']
 
     titles, _, _ = create_titles(user_client)
