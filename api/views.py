@@ -13,7 +13,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 
-from api.filters import SlugFilter
+from api.filters import TitlesFilter
 from .models import User, Categories, Genres, Titles, Review, Comments
 from .serializers import UserSerializer, YamdbTokenObtainPairSerializer, CategoriesSerializer, GenresSerializer, \
     TitlesSerializer, ReviewSerializer, CommentsSerializer
@@ -94,20 +94,6 @@ class CategoriesView(viewsets.ModelViewSet):
     search_fields = ['=name', ]
     lookup_field = 'slug'
 
-    def get_queryset(self):
-        queryset = Categories.objects.all()
-        name = self.request.query_params.get("name")
-        if name is not None:
-            queryset = queryset.filter(id=name)
-        return queryset
-
-    def destroy(self, request, slug=None):
-        if slug is None:
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        slug = get_object_or_404(Categories, slug=slug)
-        slug.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class GenresView(viewsets.ModelViewSet):
     queryset = Genres.objects.all()
@@ -125,8 +111,7 @@ class TitlesView(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_class = SlugFilter
-
+    filterset_class = TitlesFilter
 
 
 class ReviewView(viewsets.ModelViewSet):
@@ -135,21 +120,10 @@ class ReviewView(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = StandardResultsSetPagination
 
-    def perform_create(self, serializer):
-        title = get_object_or_404(Titles, pk=self.kwargs.get("title_id"))
-        serializer.save(author=self.request.user, title_id=self.kwargs.get("title_id"))
-
 
 class CommentsView(viewsets.ModelViewSet):
     queryset = Comments.objects.all()
     serializer_class = CommentsSerializer
     pagination_class = StandardResultsSetPagination
-
     permission_classes = [permissions.AllowAny]
 
-    def perform_create(self, serializer):
-        serializer.save(
-            author=self.request.user,
-            title_id=self.kwargs.get("title_id"),
-            review_id=self.kwargs.get("review_id"),
-        )
