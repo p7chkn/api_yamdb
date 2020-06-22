@@ -1,15 +1,23 @@
 import hashlib
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from django.http import HttpResponse
 from django.core.validators import validate_email
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+from rest_framework import permissions
+from rest_framework.exceptions import ValidationError, NotFound
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import User
-from .serializers import UserSerializer, YamdbTokenObtainPairSerializer
-from .permissions import IsAdmin
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+from api.filters import TitlesFilter
+from .models import User, Categories, Genres, Titles, Review, Comments
+from .serializers import UserSerializer, YamdbTokenObtainPairSerializer, CategoriesSerializer, GenresSerializer, \
+    TitlesSerializer, ReviewSerializer, CommentsSerializer
+from .permissions import IsAdmin, IsAdminOrReadOnly, CategoryPermissions
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -75,3 +83,46 @@ def sent_email(request):
 
 class YamdbTokenObtainPairView(TokenObtainPairView):
     serializer_class = YamdbTokenObtainPairSerializer
+
+
+class CategoriesView(viewsets.ModelViewSet):
+    queryset = Categories.objects.all()
+    serializer_class = CategoriesSerializer
+    permission_classes = [ IsAdminOrReadOnly, CategoryPermissions]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['=name', ]
+    lookup_field = 'slug'
+
+
+class GenresView(viewsets.ModelViewSet):
+    queryset = Genres.objects.all()
+    serializer_class = GenresSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAdminOrReadOnly]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['=name', ]
+    lookup_field = 'slug'
+
+
+class TitlesView(viewsets.ModelViewSet):
+    queryset = Titles.objects.all()
+    serializer_class = TitlesSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TitlesFilter
+
+
+class ReviewView(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = StandardResultsSetPagination
+
+
+class CommentsView(viewsets.ModelViewSet):
+    queryset = Comments.objects.all()
+    serializer_class = CommentsSerializer
+    pagination_class = StandardResultsSetPagination
+    permission_classes = [permissions.AllowAny]
