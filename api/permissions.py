@@ -26,7 +26,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             return False
 
 
-class CategoryPermissions(permissions.BasePermission):
+class MethodPermissions(permissions.BasePermission):
     def has_permission(self, request, view):
         if view.kwargs:
             if request.method == 'DELETE':

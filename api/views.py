@@ -17,7 +17,7 @@ from api.filters import TitlesFilter
 from .models import User, Categories, Genres, Titles, Review, Comments
 from .serializers import UserSerializer, YamdbTokenObtainPairSerializer, CategoriesSerializer, GenresSerializer, \
     TitlesSerializer, ReviewSerializer, CommentsSerializer
-from .permissions import IsAdmin, IsAdminOrReadOnly, CategoryPermissions
+from .permissions import IsAdmin, IsAdminOrReadOnly, MethodPermissions
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -88,7 +88,7 @@ class YamdbTokenObtainPairView(TokenObtainPairView):
 class CategoriesView(viewsets.ModelViewSet):
     queryset = Categories.objects.all()
     serializer_class = CategoriesSerializer
-    permission_classes = [ IsAdminOrReadOnly, CategoryPermissions]
+    permission_classes = [ IsAdminOrReadOnly, MethodPermissions]
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['=name', ]
@@ -98,7 +98,7 @@ class CategoriesView(viewsets.ModelViewSet):
 class GenresView(viewsets.ModelViewSet):
     queryset = Genres.objects.all()
     serializer_class = GenresSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAdminOrReadOnly, MethodPermissions]
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['=name', ]
