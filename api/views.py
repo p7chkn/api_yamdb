@@ -19,7 +19,9 @@ from .serializers import (
     CommentsSerializer,
     ReviewSerializer,
 )
-from .permissions import IsAdmin, IsAdminOrReadOnly
+from .permissions import IsAdmin, IsAdminOrReadOnly, MethodPermissions
+from django_filters.rest_framework import DjangoFilterBackend
+from api.filters import TitlesFilter
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -95,38 +97,21 @@ class YamdbTokenObtainPairView(TokenObtainPairView):
 class CategoriesViewSet(viewsets.ModelViewSet):
     queryset = Categories.objects.all()
     serializer_class = CategoriesSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsAdminOrReadOnly, MethodPermissions]
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
-    search_fields = [
-        "name",
-    ]
+    search_fields = ['=name']
     lookup_field = "slug"
-
-    def get_queryset(self):
-        queryset = Categories.objects.all()
-        name = self.request.query_params.get("name")
-        if name is not None:
-            queryset = queryset.filter(id=name)
-        return queryset
-
-    def destroy(self, request, slug=None):
-        if slug is None:
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        slug = get_object_or_404(Categories, slug=slug)
-        slug.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class GenresViewSet(viewsets.ModelViewSet):
     queryset = Genres.objects.all()
     serializer_class = GenresSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAdminOrReadOnly,  MethodPermissions]
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
-    search_fields = [
-        "name",
-    ]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['=name']
     lookup_field = "slug"
 
 
@@ -135,13 +120,40 @@ class TitlesViewSet(viewsets.ModelViewSet):
     serializer_class = TitlesSerializer
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TitlesFilter
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = StandardResultsSetPagination
+
+    def get_title(self):
+        title = get_object_or_404(Titles, pk=self.kwargs.get("title_id"))
+        return title
+
+    def get_queryset(self):
+        queryset = Review.objects.filter(title=self.get_title()).all()
+        return queryset
+
+    def partial_update(self, request, title_id, pk=None):
+        review = get_object_or_404(Review, pk=pk)
+        serializer = ReviewSerializer(review, data=request.data, partial=True)
+        if review.author != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        if serializer.is_valid():
+            serializer.save(author=request.user, title_id=title_id)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, title_id, pk=None):
+        review = get_object_or_404(Review, pk=pk)
+        if review.author != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        review.delete()
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer):
         title = get_object_or_404(Titles, pk=self.kwargs.get("title_id"))
@@ -151,12 +163,34 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comments.objects.all()
     serializer_class = CommentsSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = StandardResultsSetPagination
+    
+    def get_review(self):
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
+        return review
+
+    def get_queryset(self):
+        queryset = Comments.objects.filter(review=self.get_review()).all()
+        return queryset
+
+    def partial_update(self, request, title_id, review_id, pk=None):
+        comment = get_object_or_404(Comments, pk=pk)
+        serializer = CommentsSerializer(comment, data=request.data, partial=True)
+        if comment.author != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        if serializer.is_valid():
+            serializer.save(author=request.user, review_id=review_id)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, title_id, review_id, pk=None):
+        comment = get_object_or_404(Comments, pk=pk)
+        if comment.author != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        comment.delete()
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer):
-        serializer.save(
-            author=self.request.user,
-            title_id=self.kwargs.get("title_id"),
-            review_id=self.kwargs.get("review_id"),
-        )
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
+        serializer.save(author=self.request.user, review_id=self.kwargs.get("review_id"))
