@@ -95,16 +95,18 @@ class YamdbAuthTokenSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         email = self.initial_data['email']
+        hash_email = hashlib.sha256(email.encode("utf-8")).hexdigest()
         confirmation_code = data['confirmation_code']
+        if hash_email != confirmation_code:
+            raise serializers.ValidationError("credential dosen't match")
         user = User.objects.get(email=email)
-        if confirmation_code == user.confirmation_code:
-            user.save()
-            refresh = TokenObtainPairSerializer.get_token(user)
-            del data['email']
-            del data['confirmation_code']
-            data['token'] = str(refresh.access_token)
-            return data
-
+        if not user:
+            User.objects.create_user(email=email, password=confirmation_code)
+        refresh = TokenObtainPairSerializer.get_token(user)
+        del data['email']
+        del data['confirmation_code']
+        data['token'] = str(refresh.access_token)
+        return data
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
