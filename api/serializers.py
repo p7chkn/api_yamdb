@@ -86,6 +86,27 @@ class UserSerializer(serializers.ModelSerializer):
 #         data["access"] = str(refresh.access_token)
 #         return data
 
+class YamdbAuthTokenSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(required=False)
+    email = serializers.EmailField()
+    conformation_code = serializers.CharField()
+
+    class Meta:
+        model = User
+        fields = ('email', 'password', 'conformation_code')
+
+    def validate(self, data):
+        email = self.initial_data['email']
+        hash_email = hashlib.sha256(email.encode("utf-8")).hexdigest()
+        conformation_code = data['conformation_code']
+        if hash_email != conformation_code:
+            raise serializers.ValidationError("credential dosen't match")
+        user = User.objects.create_user(email=email, password=conformation_code)
+        refresh = TokenObtainPairSerializer.get_token(user)
+        del data['email']
+        del data['conformation_code']
+        data['token'] = str(refresh.access_token)
+        return data
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
