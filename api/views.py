@@ -1,15 +1,27 @@
 import hashlib
-from rest_framework import viewsets, status
+
 from django.http import HttpResponse
 from django.core.validators import validate_email
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+
+from rest_framework import permissions
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import User
-from .serializers import UserSerializer, YamdbTokenObtainPairSerializer
-from .permissions import IsAdmin
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .filters import TitlesFilter
+from .models import User, Categories, Genres, Titles, Review, Comments
+from .permissions import IsAdmin, IsAdminOrReadOnly, MethodPermissions
+from .serializers import UserSerializer, \
+    CategoriesSerializer, \
+    GenresSerializer, \
+    TitlesSerializer, \
+    ReviewSerializer, \
+    CommentSerializer, YamdbAuthTokenSerializer
+
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -64,14 +76,99 @@ def sent_email(request):
             return HttpResponse('This email already register')
         hash_email = hashlib.sha256(email.encode('utf-8')).hexdigest()
         send_mail(
-                    'Confirm_registration',
-                    f'Your conformation code is {hash_email}',
-                    'yamdb@yandex.ru',
-                    [email, ],
-                    fail_silently=False,)
-        return HttpResponse('check your mail for conformation code and go to /api/v1/auth/token/ for complete registration')
+            'Confirm_registration',
+            f'Your conformation code is {hash_email}',
+            'yamdb@yandex.ru',
+            [email, ],
+            fail_silently=False, )
+        return HttpResponse(
+            'check your mail for conformation code and go to'
+            ' /api/v1/auth/token/ for complete registration')
     return HttpResponse('please, sent email with post request')
 
 
 class YamdbTokenObtainPairView(TokenObtainPairView):
-    serializer_class = YamdbTokenObtainPairSerializer
+    serializer_class = YamdbAuthTokenSerializer
+
+
+class CategoriesViewSet(viewsets.ModelViewSet):
+    queryset = Categories.objects.all()
+    serializer_class = CategoriesSerializer
+    permission_classes = [IsAdminOrReadOnly, MethodPermissions]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['=name', ]
+    lookup_field = 'slug'
+
+
+class GenresViewSet(viewsets.ModelViewSet):
+    queryset = Genres.objects.all()
+    serializer_class = GenresSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          IsAdminOrReadOnly,
+                          MethodPermissions]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['=name', ]
+    lookup_field = 'slug'
+
+
+class TitlesViewSet(viewsets.ModelViewSet):
+    queryset = Titles.objects.all()
+    serializer_class = TitlesSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TitlesFilter
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        title_id = self.kwargs.get('title_id')
+        queryset = Review.objects.filter(title_id=title_id)
+        return queryset.order_by('-pub_date')
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def destroy(self, request, title_id, pk=None):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        review = get_object_or_404(Review, pk=pk)
+        if review.author != request.user and request.user.role != 'moderator':
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        review.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        queryset = Comments.objects.filter(review__title_id=title_id,
+                                           review_id=review_id)
+        return queryset.order_by('-pub_date')
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def destroy(self, request, title_id, review_id, pk=None):
+        comment = get_object_or_404(Comments, pk=pk)
+        if comment.author != request.user and request.user.role != 'moderator':
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
