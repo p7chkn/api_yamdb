@@ -1,92 +1,110 @@
 import hashlib
+
 from django.contrib.auth import authenticate
 from django.core.validators import validate_email
-from rest_framework import exceptions, serializers
-from rest_framework.fields import IntegerField
-from rest_framework.relations import SlugRelatedField
-from rest_framework_simplejwt.serializers import TokenObtainSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Categories, Genres, Titles, Review, Comments
 from django.shortcuts import get_object_or_404
+from django.db.models import Avg
+
+from rest_framework import exceptions, serializers
+from rest_framework.relations import SlugRelatedField
+from rest_framework_simplejwt.serializers import TokenObtainSerializer,\
+    TokenObtainPairSerializer
+
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import (
     ValidationError,
     PermissionDenied,
     AuthenticationFailed
 )
-from django.db.models import Avg
 
+from .models import User, Categories, Genres, Titles, Review, Comments
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ["first_name", "last_name", "username", "bio", "email", "role"]
+        fields = [
+            "first_name",
+            "last_name",
+            "username",
+            "bio",
+            "email",
+            "role"]
         model = User
 
 
-class YamdbTokenObtainSerializer(TokenObtainSerializer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+# class YamdbTokenObtainSerializer(TokenObtainSerializer):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#
+#         self.fields[self.username_field] = serializers.CharField()
+#         self.fields["password"] = serializers.CharField(required=False)
+#         self.fields["conformation_code"] = serializers.CharField()
+#
+#     def validate(self, attrs):
+#         email = attrs[self.username_field]
+#         try:
+#             validate_email(email)
+#         except Exception:
+#             raise serializers.ValidationError("Not valid email")
+#
+#         if not User.objects.filter(email=email).first():
+#             hash_email = hashlib.sha256(email.encode("utf-8")).hexdigest()
+#             print(hash_email)
+#             if hash_email != attrs["conformation_code"]:
+#                 raise serializers.ValidationError("credential dosen't match")
+#             User.objects.create_user(
+#                 email=email, username="", password=attrs["conformation_code"]
+#             )
+#
+#         authenticate_kwargs = {
+#             self.username_field: attrs[self.username_field],
+#             "password": attrs["conformation_code"],
+#         }
+#         try:
+#             authenticate_kwargs["request"] = self.context["request"]
+#         except KeyError:
+#             pass
+#
+#         self.user = authenticate(**authenticate_kwargs)
+#         if self.user is None or not self.user.is_active:
+#             raise exceptions.AuthenticationFailed(
+#                 self.error_messages["no_active_account"], "no_active_account",
+#             )
+#
+#         return {}
+#
+#
+# class YamdbTokenObtainPairSerializer(YamdbTokenObtainSerializer):
+#     @classmethod
+#     def get_token(cls, user):
+#         return RefreshToken.for_user(user)
+#
+#     def validate(self, attrs):
+#         data = super().validate(attrs)
+#         refresh = self.get_token(self.user)
+#         data["refresh"] = str(refresh)
+#         data["access"] = str(refresh.access_token)
+#         return data
 
-        self.fields[self.username_field] = serializers.CharField()
-        self.fields["password"] = serializers.CharField(required=False)
-        self.fields["conformation_code"] = serializers.CharField()
+class YamdbAuthTokenSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()
 
-    def validate(self, attrs):
-        email = attrs[self.username_field]
-        try:
-            validate_email(email)
-        except Exception:
-            raise serializers.ValidationError("Not valid email")
+    class Meta:
+        model = User
+        fields = ('email', 'confirmation_code')
 
-        if not User.objects.filter(email=email).first():
-            hash_email = hashlib.sha256(email.encode("utf-8")).hexdigest()
-            print(hash_email)
-            if hash_email != attrs["conformation_code"]:
-                raise serializers.ValidationError("credential dosen't match")
-            User.objects.create_user(
-                email=email, username="", password=attrs["conformation_code"]
-            )
+    def validate(self, data):
+        email = self.initial_data['email']
+        confirmation_code = data['confirmation_code']
+        user = User.objects.get(email=email)
+        if confirmation_code == user.confirmation_code:
+            user.save()
+            refresh = TokenObtainPairSerializer.get_token(user)
+            del data['email']
+            del data['confirmation_code']
+            data['token'] = str(refresh.access_token)
+            return data
 
-        authenticate_kwargs = {
-            self.username_field: attrs[self.username_field],
-            "password": attrs["conformation_code"],
-        }
-        try:
-            authenticate_kwargs["request"] = self.context["request"]
-        except KeyError:
-            pass
-
-        self.user = authenticate(**authenticate_kwargs)
-
-        # Prior to Django 1.10, inactive users could be authenticated with the
-        # default `ModelBackend`.  As of Django 1.10, the `ModelBackend`
-        # prevents inactive users from authenticating.  App designers can still
-        # allow inactive users to authenticate by opting for the new
-        # `AllowAllUsersModelBackend`.  However, we explicitly prevent inactive
-        # users from authenticating to enforce a reasonable policy and provide
-        # sensible backwards compatibility with older Django versions.
-        if self.user is None or not self.user.is_active:
-            raise exceptions.AuthenticationFailed(
-                self.error_messages["no_active_account"], "no_active_account",
-            )
-
-        return {}
-
-
-class YamdbTokenObtainPairSerializer(YamdbTokenObtainSerializer):
-    @classmethod
-    def get_token(cls, user):
-        return RefreshToken.for_user(user)
-
-    def validate(self, attrs):
-        data = super().validate(attrs)
-
-        refresh = self.get_token(self.user)
-
-        data["refresh"] = str(refresh)
-        data["access"] = str(refresh.access_token)
-
-        return data
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
@@ -117,27 +135,29 @@ class GenreField(SlugRelatedField):
 class TitlesSerializer(serializers.ModelSerializer):
     rating = serializers.SerializerMethodField(read_only=True)
     category = CustomSlugRelatedField(
-                                      queryset=Categories.objects.all(),
-                                      slug_field='slug'
-                                     )
+        queryset=Categories.objects.all(),
+        slug_field='slug'
+    )
     genre = CustomSlugRelatedField(
-                                   queryset=Genres.objects.all(),
-                                   slug_field='slug', many=True
-                                  )
+        queryset=Genres.objects.all(),
+        slug_field='slug', many=True
+    )
 
     class Meta:
         fields = (
-                  'id', 'name', 'year',
-                  'rating', 'description',
-                  'genre', 'category'
-                 )
+            'id', 'name', 'year',
+            'rating', 'description',
+            'genre', 'category'
+        )
         model = Titles
 
     def get_rating(self, title):
-        scores = Review.objects.filter(title_id=title.id).aggregate(Avg('score'))
+        scores = Review.objects.filter(title_id=title.id).aggregate(
+            Avg('score'))
         if scores:
             return scores['score__avg']
         return None
+
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
@@ -173,7 +193,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         instance.pub_date = validated_data.get('pub_date', instance.pub_date)
         instance.save()
         return instance
-
 
 
 class CommentSerializer(serializers.ModelSerializer):

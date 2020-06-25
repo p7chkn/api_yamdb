@@ -1,23 +1,27 @@
 import hashlib
-from rest_framework import viewsets, status, filters, serializers
+
 from django.http import HttpResponse
 from django.core.validators import validate_email
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+
 from rest_framework import permissions
-from rest_framework.exceptions import ValidationError, NotFound
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
-import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 
-from api.filters import TitlesFilter
+from .filters import TitlesFilter
 from .models import User, Categories, Genres, Titles, Review, Comments
-from .serializers import UserSerializer, YamdbTokenObtainPairSerializer, CategoriesSerializer, GenresSerializer, \
-    TitlesSerializer, ReviewSerializer, CommentSerializer
 from .permissions import IsAdmin, IsAdminOrReadOnly, MethodPermissions
+from .serializers import UserSerializer, \
+    CategoriesSerializer, \
+    GenresSerializer, \
+    TitlesSerializer, \
+    ReviewSerializer, \
+    CommentSerializer, YamdbAuthTokenSerializer
+
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -78,12 +82,13 @@ def sent_email(request):
             [email, ],
             fail_silently=False, )
         return HttpResponse(
-            'check your mail for conformation code and go to /api/v1/auth/token/ for complete registration')
+            'check your mail for conformation code and go to'
+            ' /api/v1/auth/token/ for complete registration')
     return HttpResponse('please, sent email with post request')
 
 
 class YamdbTokenObtainPairView(TokenObtainPairView):
-    serializer_class = YamdbTokenObtainPairSerializer
+    serializer_class = YamdbAuthTokenSerializer
 
 
 class CategoriesViewSet(viewsets.ModelViewSet):
@@ -99,7 +104,9 @@ class CategoriesViewSet(viewsets.ModelViewSet):
 class GenresViewSet(viewsets.ModelViewSet):
     queryset = Genres.objects.all()
     serializer_class = GenresSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAdminOrReadOnly, MethodPermissions]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          IsAdminOrReadOnly,
+                          MethodPermissions]
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['=name', ]

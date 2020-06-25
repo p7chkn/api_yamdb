@@ -1,5 +1,5 @@
 from rest_framework import permissions, exceptions
-from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
 class IsAdmin(BasePermission):
@@ -41,19 +41,6 @@ class IsModeratorPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj == request.user
-
-
-class IsAdminPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
-        try:
-            if view.kwargs['username'] == 'me' and request.user.role:
-                return True
-        except Exception:
-            pass
-        try:
-            return request.user.role == 'admin'
-        except Exception:
-            return False
 
 
 class IsOwnerPermission(permissions.BasePermission):
