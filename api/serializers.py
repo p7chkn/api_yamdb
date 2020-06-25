@@ -32,60 +32,6 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
 
 
-# class YamdbTokenObtainSerializer(TokenObtainSerializer):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#
-#         self.fields[self.username_field] = serializers.CharField()
-#         self.fields["password"] = serializers.CharField(required=False)
-#         self.fields["conformation_code"] = serializers.CharField()
-#
-#     def validate(self, attrs):
-#         email = attrs[self.username_field]
-#         try:
-#             validate_email(email)
-#         except Exception:
-#             raise serializers.ValidationError("Not valid email")
-#
-#         if not User.objects.filter(email=email).first():
-#             hash_email = hashlib.sha256(email.encode("utf-8")).hexdigest()
-#             print(hash_email)
-#             if hash_email != attrs["conformation_code"]:
-#                 raise serializers.ValidationError("credential dosen't match")
-#             User.objects.create_user(
-#                 email=email, username="", password=attrs["conformation_code"]
-#             )
-#
-#         authenticate_kwargs = {
-#             self.username_field: attrs[self.username_field],
-#             "password": attrs["conformation_code"],
-#         }
-#         try:
-#             authenticate_kwargs["request"] = self.context["request"]
-#         except KeyError:
-#             pass
-#
-#         self.user = authenticate(**authenticate_kwargs)
-#         if self.user is None or not self.user.is_active:
-#             raise exceptions.AuthenticationFailed(
-#                 self.error_messages["no_active_account"], "no_active_account",
-#             )
-#
-#         return {}
-#
-#
-# class YamdbTokenObtainPairSerializer(YamdbTokenObtainSerializer):
-#     @classmethod
-#     def get_token(cls, user):
-#         return RefreshToken.for_user(user)
-#
-#     def validate(self, attrs):
-#         data = super().validate(attrs)
-#         refresh = self.get_token(self.user)
-#         data["refresh"] = str(refresh)
-#         data["access"] = str(refresh.access_token)
-#         return data
-
 class YamdbAuthTokenSerializer(serializers.ModelSerializer):
     password = serializers.CharField(required=False)
     email = serializers.EmailField()
