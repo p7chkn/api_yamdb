@@ -15,13 +15,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .filters import TitlesFilter
 from .models import User, Categories, Genres, Titles, Review, Comments
 from .permissions import IsAdmin, IsAdminOrReadOnly, MethodPermissions
-from .serializers import UserSerializer, \
-    CategoriesSerializer, \
-    GenresSerializer, \
-    TitlesSerializer, \
-    ReviewSerializer, \
-    CommentSerializer, YamdbAuthTokenSerializer
-
+from .serializers import UserSerializer, CategoriesSerializer, \
+    GenresSerializer, TitlesSerializer, ReviewSerializer, CommentSerializer, \
+    YamdbAuthTokenSerializer
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -41,7 +37,6 @@ class UsersViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         obj = get_object_or_404(queryset)
         self.check_object_permissions(self.request, obj)
-        print(obj)
         return obj
 
     def get_queryset(self, username=None):

@@ -32,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
 
 
-class YamdbAuthTokenSerializer(serializers.ModelSerializer):
+class YamdbAuthTokenSerializer(serializers.Serializer):
     password = serializers.CharField(required=False)
     email = serializers.EmailField()
     conformation_code = serializers.CharField()
@@ -132,8 +132,6 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         author = self.context['request'].user
-        if not author.is_authenticated:
-            raise AuthenticationFailed()
         if instance.author != author:
             raise PermissionDenied()
         instance.text = validated_data.get('text', instance.text)
@@ -163,8 +161,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         author = self.context['request'].user
-        if not author.is_authenticated:
-            raise AuthenticationFailed()
         if instance.author != author:
             raise PermissionDenied()
         instance.text = validated_data.get('text', instance.text)
