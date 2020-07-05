@@ -14,7 +14,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .filters import TitlesFilter
 from .models import User, Categories, Genres, Titles, Review, Comments
-from .permissions import IsAdmin, IsAdminOrReadOnly, MethodPermissions
+from .permissions import IsAdmin, IsAdminOrReadOnly, MethodPermissions, \
+    IsModeratorPermission, IsOwnerPermission
 from .serializers import UserSerializer, CategoriesSerializer, \
     GenresSerializer, TitlesSerializer, ReviewSerializer, CommentSerializer, \
     YamdbAuthTokenSerializer
@@ -129,16 +130,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             permission_classes = [permissions.AllowAny]
+        elif self.action in 'destroy':
+            permission_classes = [permissions.IsAuthenticated,
+                                  IsModeratorPermission]
+        elif self.action in ('update', 'partial_update'):
+            permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def destroy(self, request, title_id, pk=None):
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
         review = get_object_or_404(Review, pk=pk)
-        if review.author != request.user and request.user.role != 'moderator':
-            return Response(status=status.HTTP_403_FORBIDDEN)
         review.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -157,13 +159,16 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             permission_classes = [permissions.AllowAny]
+        elif self.action in ('destroy'):
+            permission_classes = [permissions.IsAuthenticated,
+                                  IsModeratorPermission ]
+        elif self.action in ('update', 'partial_update'):
+            permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
         else:
-            permission_classes = [permissions.IsAuthenticated]
+            permission_classes = [permissions.IsAuthenticated,]
         return [permission() for permission in permission_classes]
 
     def destroy(self, request, title_id, review_id, pk=None):
         comment = get_object_or_404(Comments, pk=pk)
-        if comment.author != request.user and request.user.role != 'moderator':
-            return Response(status=status.HTTP_403_FORBIDDEN)
         comment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

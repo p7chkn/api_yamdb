@@ -27,6 +27,10 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class MethodPermissions(permissions.BasePermission):
+    """
+    Prohibiting the use of any method other than "delete" for working
+    with categories and genres
+    """
     def has_permission(self, request, view):
         if view.kwargs:
             if request.method == 'DELETE':
@@ -45,6 +49,6 @@ class IsModeratorPermission(permissions.BasePermission):
 
 class IsOwnerPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        if request.method in ['GET', 'PATCH']:
-            return obj == request.user
+        if request.method == 'PATCH':
+            return obj.author == request.user
         return False

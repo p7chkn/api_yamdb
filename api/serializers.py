@@ -7,7 +7,7 @@ from django.db.models import Avg
 
 from rest_framework import exceptions, serializers
 from rest_framework.relations import SlugRelatedField
-from rest_framework_simplejwt.serializers import TokenObtainSerializer,\
+from rest_framework_simplejwt.serializers import TokenObtainSerializer, \
     TokenObtainPairSerializer
 
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -47,7 +47,8 @@ class YamdbAuthTokenSerializer(serializers.Serializer):
         conformation_code = data['conformation_code']
         if hash_email != conformation_code:
             raise serializers.ValidationError("credential dosen't match")
-        user = User.objects.create_user(email=email, password=conformation_code)
+        user = User.objects.create_user(email=email,
+                                        password=conformation_code)
         refresh = TokenObtainPairSerializer.get_token(user)
         del data['email']
         del data['conformation_code']
@@ -110,35 +111,45 @@ class TitlesSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     score = serializers.IntegerField(min_value=1, max_value=10)
+    title = serializers.PrimaryKeyRelatedField(queryset=Titles.objects.all())
 
     class Meta:
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('id', 'text', 'author', 'score', 'pub_date', 'title')
         model = Review
 
-    def create(self, validated_data):
+    def validate(self, data):
         author = self.context['request'].user
         request = self.context.get('request')
-        title_id = request.parser_context['kwargs']['title_id']
-        method = request.method
-        title = get_object_or_404(Titles, pk=title_id)
-        review = Review.objects.filter(title_id=title_id, author=author)
-        if method == 'POST' and review:
+        #title_id = request.parser_context['kwargs']['title_id']
+        title = get_object_or_404(Titles, pk=request['title_id'])
+        review = Review.objects.filter(title_id=title, author=author)
+        if review:
             raise ValidationError('Вы уже писали отзыв на это произведение')
-        return Review.objects.create(
-            author=author,
-            title_id=title_id,
-            **validated_data
-        )
+        data['title_id'] = title
+        data['author_id'] = author.id
+        return data
 
-    def update(self, instance, validated_data):
-        author = self.context['request'].user
-        if instance.author != author:
-            raise PermissionDenied()
-        instance.text = validated_data.get('text', instance.text)
-        instance.score = validated_data.get('score', instance.score)
-        instance.pub_date = validated_data.get('pub_date', instance.pub_date)
-        instance.save()
-        return instance
+    # def create(self, validated_data):
+    #     text = validated_data['text']
+    #     title = validated_data['title_id']
+    #     author = validated_data['author_id']
+    #     score = validated_data['score']
+    #     print(text, title, author, score)
+    #     return Review.objects.create(**validated_data)
+
+    # def create(self, validated_data):
+    #     author = self.context['request'].user
+    #     request = self.context.get('request')
+    #     title_id = request.parser_context['kwargs']['title_id']
+    #     title = get_object_or_404(Titles, pk=title_id)
+    #     review = Review.objects.filter(title_id=title, author=author)
+    #     if review:
+    #         raise ValidationError('Вы уже писали отзыв на это произведение')
+    #     return Review.objects.create(
+    #         author=author,
+    #         title_id=title_id,
+    #         **validated_data
+    #     )
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -158,12 +169,3 @@ class CommentSerializer(serializers.ModelSerializer):
             review_id=review_id,
             **validated_data
         )
-
-    def update(self, instance, validated_data):
-        author = self.context['request'].user
-        if instance.author != author:
-            raise PermissionDenied()
-        instance.text = validated_data.get('text', instance.text)
-        instance.pub_date = validated_data.get('pub_date', instance.pub_date)
-        instance.save()
-        return instance
