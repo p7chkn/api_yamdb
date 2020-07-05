@@ -111,45 +111,21 @@ class TitlesSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     score = serializers.IntegerField(min_value=1, max_value=10)
-    title = serializers.PrimaryKeyRelatedField(queryset=Titles.objects.all())
 
     class Meta:
-        fields = ('id', 'text', 'author', 'score', 'pub_date', 'title')
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
-    def validate(self, data):
-        author = self.context['request'].user
-        request = self.context.get('request')
-        #title_id = request.parser_context['kwargs']['title_id']
-        title = get_object_or_404(Titles, pk=request['title_id'])
-        review = Review.objects.filter(title_id=title, author=author)
-        if review:
+    def validate(self, attrs):
+        attrs['title'] = get_object_or_404(Titles,
+                                           id=self.context['view'].kwargs[
+                                               'title_id'])
+        attrs['author'] = self.context['request'].user
+        review = Review.objects.filter(title_id=attrs['title'],
+                                       author=self.context['request'].user)
+        if not self.partial and review:
             raise ValidationError('Вы уже писали отзыв на это произведение')
-        data['title_id'] = title
-        data['author_id'] = author.id
-        return data
-
-    # def create(self, validated_data):
-    #     text = validated_data['text']
-    #     title = validated_data['title_id']
-    #     author = validated_data['author_id']
-    #     score = validated_data['score']
-    #     print(text, title, author, score)
-    #     return Review.objects.create(**validated_data)
-
-    # def create(self, validated_data):
-    #     author = self.context['request'].user
-    #     request = self.context.get('request')
-    #     title_id = request.parser_context['kwargs']['title_id']
-    #     title = get_object_or_404(Titles, pk=title_id)
-    #     review = Review.objects.filter(title_id=title, author=author)
-    #     if review:
-    #         raise ValidationError('Вы уже писали отзыв на это произведение')
-    #     return Review.objects.create(
-    #         author=author,
-    #         title_id=title_id,
-    #         **validated_data
-    #     )
+        return attrs
 
 
 class CommentSerializer(serializers.ModelSerializer):
