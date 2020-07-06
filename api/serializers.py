@@ -109,7 +109,7 @@ class TitlesSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source='author.username')
+    author = serializers.StringRelatedField(source='author.username')
     score = serializers.IntegerField(min_value=1, max_value=10)
 
     class Meta:
@@ -135,13 +135,8 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('id', 'author', 'text', 'pub_date')
         model = Comments
 
-    def create(self, validated_data):
-        author = self.context['request'].user
-        request = self.context.get('request')
-        review_id = request.parser_context['kwargs']['review_id']
-        review = get_object_or_404(Review, pk=review_id)
-        return Comments.objects.create(
-            author=author,
-            review_id=review_id,
-            **validated_data
-        )
+    def validate(self, attrs):
+        attrs['review'] = get_object_or_404(
+            Review, id=self.context['view'].kwargs['review_id'])
+        attrs['author'] = self.context['request'].user
+        return attrs
