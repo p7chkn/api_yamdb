@@ -25,6 +25,7 @@ class UserManager(BaseUserManager):
             password=password,
             **kwargs
         )
+        user.is_staff = True
         user.role = 'admin'
         user.is_admin = True
         user.save(using=self._db)
@@ -45,9 +46,17 @@ class User(AbstractBaseUser):
     last_name = models.CharField(max_length=200, blank=True)
     username = models.SlugField(unique=True, blank=True, null=True)
     bio = models.TextField(blank=True)
+    is_admin = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
     role = models.CharField(max_length=10, choices=USER_ROLES, default='user')
     objects = UserManager()
     USERNAME_FIELD = 'email'
+
+    def has_module_perms(self, *args, **kwargs):
+        return self.is_admin
+
+    def has_perm(self, *args, **kwargs):
+        return self.is_admin
 
     def __str__(self):
         return self.email

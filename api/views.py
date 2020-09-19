@@ -40,8 +40,7 @@ class UsersViewSet(viewsets.ModelViewSet):
     def get_object(self):
         queryset = self.get_queryset()
         obj = get_object_or_404(queryset)
-        self.check_object_permissions(self.request, obj)
-        print(obj)
+        self.check_object_permissions(self.request, obj)        
         return obj
 
     def get_queryset(self, username=None):

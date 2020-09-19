@@ -12,6 +12,9 @@ django==3.0.5             # via -r requirements.in, djangorestframework
 djangorestframework==3.11.0  # via -r requirements.in
 djangorestframework-simplejwt==4.4.0 # via -r requirements.in
 django-filter==2.3.0 # via -r requirements.in
+gunicorn==20.0.4
+psycopg2-binary==2.8.5
+PyJWT==1.7.1
 idna==2.9                 # via requests
 importlib-metadata==1.6.0  # via pluggy, pytest
 more-itertools==8.2.0     # via pytest
